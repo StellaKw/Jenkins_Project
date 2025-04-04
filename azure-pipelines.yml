@@ -1,0 +1,45 @@
+trigger:
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: 'windows-latest'
+
+jobs:
+  - job: Build
+    steps:
+      - task: UseDotNet@2
+        inputs:
+          packageType: 'sdk'
+          version: '8.x'
+
+      - task: NuGetToolInstaller@1  # Ensure NuGet is installed
+        inputs:
+          versionSpec: '5.x'
+
+      - task: Restore@2
+        inputs:
+          command: 'restore'
+          projects: '**/*.csproj'
+
+      - task: Build@1
+        inputs:
+          solution: '**/*.csproj'
+          clean: true
+          restore: true
+          buildPlatform: 'Any CPU'
+          buildConfiguration: 'Release'
+
+      - task: NuGetCommand@2
+        inputs:
+          command: 'pack'
+          packagesToPack: '**/*.csproj'
+          versioningScheme: 'off'
+          outputDir: '$(Build.ArtifactStagingDirectory)'
+
+      - task: NuGetCommand@2
+        inputs:
+          command: 'push'
+          publishVstsFeed: 'Your-Feed-Name'
+          packagesToPush: '$(Build.ArtifactStagingDirectory)/*.nupkg'
